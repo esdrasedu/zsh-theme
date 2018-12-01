@@ -25,7 +25,7 @@ function git_info() {
 }
 
 function rvm_prompt_info() {
-  ref=$(rvm-prompt) || return
+  ref=$(rvm-prompt 2> /dev/null) || return
   echo "$ZSH_THEME_RVM_PROMPT_PREFIX$(rvm-prompt i v g)$ZSH_THEME_RVM_PROMPT_SUFFIX"
 }
 
@@ -35,13 +35,22 @@ function kiex_prompt_info() {
   echo "$ZSH_THEME_KIEX_PROMPT_PREFIX$version$ZSH_THEME_KIEX_PROMPT_SUFFIX"
 }
 
+function battery_prompt_info() {
+  BATDIR="/sys/class/power_supply/BAT0"
+  max=`cat $BATDIR/charge_full`
+  current=`cat $BATDIR/charge_now`
+  percent=$(( 100 * $current / $max ))
+  echo "$percent%%"
+}
+
+
 function precmd() {
 
   local git_info=$(git_info)
   local git_status=$(git_prompt_status)
   local rvm=$(rvm_prompt_info)
   local kiex=$(kiex_prompt_info)
-  local battery=$(battery_pct_prompt)
+  local battery=$(battery_prompt_info)
   
   local size_color=0
 
@@ -60,17 +69,13 @@ function precmd() {
   if [ ${#kiex} != 0 ]; then
     ((size_color+=10))
   fi
-  
-  if [ ${#battery} != 1 ]; then
-    ((size_color+=20))
-  fi
 
   local datesize=11
   local spacesize=12
-  local name=`hostname -s`
-  local logname=`logname`
+  local name=`hostname`
+  local logname=`id -nu`
   local termwidth= 
-  (( termwidth = ${COLUMNS} + ${size_color} - ${spacesize} -${datesize} - ${#${logname}} - ${#${name}} - ${#${PWD}} - ${#git_info} - ${#git_status} - ${#rvm} - ${#kiex} - ${#battery} ))
+  (( termwidth = ${COLUMNS} + ${size_color} - ${spacesize} - ${datesize} - ${#${logname}} - ${#${name}} - ${#${PWD}} - ${#git_info} - ${#git_status} - ${#rvm} - ${#kiex} - ${#battery} ))
 
   local spacing=""
   for i in {1..$termwidth}; do
